@@ -3,10 +3,10 @@ import spinal.lib._
 import spinal.lib.fsm._
 
 case class SubleqConfig(
-    val width: Int = 16
+    val width: Int
 ) {
     def dtype() = SInt(width bits)
-    def reg() = Reg(dtype())
+    def reg() = Reg(dtype()) init(0)
 }
 
 
@@ -18,10 +18,27 @@ case class SubleqBus(cfg: SubleqConfig) extends Bundle {
 }
 
 
+/*
+
+def subleq(rd, wr):
+    var a, b, c, r
+    var ip = 0
+    while(true):
+        a = rd(ip++)
+        b = rd(ip++)
+        c = rd(ip++)
+        r = rd(b) - rd(a)
+        wr(b, r)
+        if(r <= 0) ip = c
+
+*/
+
+
 case class Subleq(cfg: SubleqConfig) extends Component {
     val io = new Bundle {
         val bus = SubleqBus(cfg)
     }
+
 
     val regs = new Area {
         val a = cfg.reg()
@@ -29,6 +46,7 @@ case class Subleq(cfg: SubleqConfig) extends Component {
         val c = cfg.reg()
         val ip = cfg.reg() init(0)
     }
+
 
     val b_addr = cfg.reg()
     val b_wdata = cfg.reg()
@@ -44,86 +62,29 @@ case class Subleq(cfg: SubleqConfig) extends Component {
 
     io.bus.write := b_write
 
+
     val t0 = cfg.reg()
     val t1 = cfg.reg()
 
+
     val nIp = regs.ip + 1
+
 
     val sub = t1 - t0
     val br = sub <= 0
 
-    val state = Reg(UInt(4 bits)) init(0)
-
-    switch(state) {
-        is(0) {
-            b_addr := regs.ip
-        }
-        is(1) {
-            regs.a := io.bus.rdata
-            regs.ip := nIp
-        }
-
-        is(2) {
-            b_addr := regs.ip
-        }
-        is(3) {
-            regs.b := io.bus.rdata
-            regs.ip := nIp
-        }
-        
-        is(4) {
-            b_addr := regs.ip
-        }
-        is(5) {
-            regs.c := io.bus.rdata
-            regs.ip := nIp
-        }
-
-        is(6) {
-            b_addr := regs.a
-        }
-        is(7) {
-            t0 := io.bus.rdata
-        }
-
-        is(8) {
-            b_addr := regs.b
-        }
-        is(9) {
-            t1 := io.bus.rdata            
-        }
-
-        is(10) {
-            b_addr := regs.b
-            b_wdata := sub
-            b_write := True
-        }
-        is(11) {
-            b_write := False
-        }
-
-        is(12) {
-            when(br) {
-                regs.ip := regs.c
-            }
-        }
-    }
-
-    when(state === 12) {
-        state := 0
-    } otherwise {
-        state := state + 1
-    }
 
     /*
     val fsm = new StateMachine {
-        def fetchRegState(addr: SInt, reg: SInt) = new State {
-            whenIsActive {
+        def fetchRegState(addr: SInt, reg: SInt, incIP: Boolean = true) = new State {
+            onEntry {
                 b_addr := addr
-                b_write := False
+            }
+            whenIsActive {
+                reg := io.bus.rdata
             }
             onExit {
-                regs.ip := nIp
+                if(incIP) regs.ip := nIp
             }
         }
 
@@ -136,20 +97,21 @@ case class Subleq(cfg: SubleqConfig) extends Component {
         val fetchC = fetchRegState(regs.ip, regs.c)
         fetchB.whenIsActive(goto(fetchC))
 
-        val fetchT0 = fetchRegState(regs.a, t0)
+        val fetchT0 = fetchRegState(regs.a, t0, false)
         fetchC.whenIsActive(goto(fetchT0))
 
-        val fetchT1 = fetchRegState(regs.b, t1)
+        val fetchT1 = fetchRegState(regs.b, t1, false)
         fetchT0.whenIsActive(goto(fetchT1))
 
         val execute = new State {
-            whenIsActive {
+            onEntry {
                 b_addr := regs.b
-                b_wdata := r
+                b_wdata := sub
                 b_write := True
-                goto(fetchA)
             }
+            whenIsActive(goto(fetchA))
             onExit {
+                b_write := False
                 when(br) {
                     regs.ip := regs.c
                 } otherwise {
@@ -160,22 +122,54 @@ case class Subleq(cfg: SubleqConfig) extends Component {
         fetchT1.whenIsActive(goto(execute))
     }
     */
-}
 
-/*
 
-void run_subleq(void) {
-    s16 a, b, c, r;
-    s16 ip = 0;
-    while(1) {
-        a = subleq_read(ip); ip++;
-        b = subleq_read(ip); ip++;
-        c = subleq_read(ip); ip++;
-        if(a == -1 && b == -1 && c == -1) break;
-        r = subleq_read(b) - subleq_read(a);
-        subleq_write(b, r);
-        if(r <= 0) ip = c;
+    val state = Reg(UInt(4 bits)) init(0)
+    
+    var stateID = 0
+    def nextStateID(): Int = {
+        var id = stateID
+        stateID += 1
+        return id
+    }
+
+    switch(state) {
+        def defFetchState(addr: SInt, reg: SInt, incIP: Boolean = true) {
+            is(nextStateID()) {
+                b_addr := addr
+            }
+            is(nextStateID()) {
+                reg := io.bus.rdata
+                if(incIP) regs.ip := nIp
+            }
+        }
+
+        defFetchState(regs.ip, regs.a)
+        defFetchState(regs.ip, regs.b)
+        defFetchState(regs.ip, regs.c)
+        defFetchState(regs.a, t0, false)
+        defFetchState(regs.b, t1, false)
+
+        is(nextStateID()) {
+            b_addr := regs.b
+            b_wdata := sub
+            b_write := True
+        }
+        is(nextStateID()) {
+            b_write := False
+        }
+
+        is(nextStateID()) {
+            when(br) {
+                regs.ip := regs.c
+            }
+        }
+    }
+
+    when(state === stateID) {
+        state := 0
+    } otherwise {
+        state := state + 1
     }
 }
 
-*/

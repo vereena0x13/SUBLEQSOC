@@ -69,7 +69,7 @@ object ST1Test extends App {
             clk.deassertReset()
             sleep(1)
 
-            for(_ <- 0 until 10000) {
+            for(_ <- 0 until 3000) {
                 clk.clockToggle()
                 sleep(1)
                 clk.clockToggle()
