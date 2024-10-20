@@ -48,8 +48,8 @@ module top(
     SubleqSOC soc(
         .clk(t_clk),
         .reset(rst),
-        .io_uart_data_i(t_uart_data),
-		.io_uart_data_o(uart_do),
+        .io_uart_rdata(t_uart_data),
+		.io_uart_wdata(uart_do),
 		.io_uart_txe(txe_s1),
 		.io_uart_rxf(rxf_s1),
 		.io_uart_wr(uart_wr),

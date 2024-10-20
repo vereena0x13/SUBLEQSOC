@@ -5,6 +5,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Using
 import java.io.DataInputStream
 import java.io.FileInputStream
+import Util.readShorts
 
 object Util {
     def spinalConfig(): SpinalConfig = SpinalConfig(
@@ -20,7 +21,7 @@ object Util {
 
 object ST1 extends App {
     val cfg = Util.spinalConfig
-    cfg.generateVerilog(SubleqSOC())
+    cfg.generateVerilog(SubleqSOC(Some(readShorts("test.bin"))))
 }
 
 object ST1Test extends App {
@@ -29,16 +30,26 @@ object ST1Test extends App {
         .withWave
         .withConfig(cfg)
         .compile {
-            val soc = SubleqSOC()
+            val soc = SubleqSOC(None)
             
             soc.mem.simPublic()
             soc.sb_addr.simPublic()
             soc.sb_wdata.simPublic()
             soc.sb_write.simPublic()
+            soc.io.uart_wdata.simPublic()
+            soc.io.uart_rdata.simPublic()
+            soc.io.uart_txe.simPublic()
+            soc.io.uart_rxf.simPublic()
+            soc.io.uart_wr.simPublic()
+            soc.io.uart_rd.simPublic()
             
             soc
         }
         .doSim { soc =>
+            soc.io.uart_rdata #= 0
+            soc.io.uart_txe   #= false
+            soc.io.uart_rxf   #= true
+
             val test_bin = Util.readShorts("test.bin")
             for(i <- 0 until test_bin.length) {
                 val v = test_bin(i)
@@ -60,14 +71,18 @@ object ST1Test extends App {
             clk.deassertReset()
             sleep(1)
 
-            for(_ <- 0 until 8000) {
+            for(_ <- 0 until 8500) {
                 clk.clockToggle()
                 sleep(1)
                 clk.clockToggle()
                 sleep(1)
 
-                if(soc.sb_addr.toInt < 0 && soc.sb_write.toBoolean) {
-                    print(soc.sb_wdata.toInt.toChar)
+                //if(soc.sb_write.toBoolean && soc.sb_addr.toInt < 0) {
+                //    print(soc.io.uart_wdata.toInt.toChar)
+                //}
+
+                if(soc.io.uart_wr.toBoolean) {
+                    print(soc.io.uart_wdata.toInt.toChar)
                 }
             }
         }

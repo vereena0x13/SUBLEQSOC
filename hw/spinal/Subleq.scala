@@ -96,6 +96,8 @@ case class Subleq(cfg: SubleqConfig) extends Component {
             b_write := True
         }
 
+        nextState {}
+
         nextState {
             b_wait := False
             b_write := False
