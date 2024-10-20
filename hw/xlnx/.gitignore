@@ -1,0 +1,11 @@
+.Xil
+top.cache
+top.hw
+top.ip_user_files
+*.bit
+*.bin
+*.log
+*.rpt
+*.jou
+*.dcp
+*.xpr

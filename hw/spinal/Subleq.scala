@@ -1,6 +1,5 @@
 import spinal.core._
 import spinal.lib._
-import spinal.lib.fsm._
 
 
 case class SubleqConfig(
@@ -18,21 +17,6 @@ case class SubleqBus(cfg: SubleqConfig) extends Bundle {
     val write = out(Bool())
 }
 
-
-/*
-
-def subleq(rd, wr):
-    var a, b, c, r
-    var ip = 0
-    while(true):
-        a = rd(ip++)
-        b = rd(ip++)
-        c = rd(ip++)
-        r = rd(b) - rd(a)
-        wr(b, r)
-        if(r <= 0) ip = c
-
-*/
 
 case class Subleq(cfg: SubleqConfig) extends Component {
     val io = new Bundle {
@@ -117,4 +101,3 @@ case class Subleq(cfg: SubleqConfig) extends Component {
         state := state + 1
     }
 }
-

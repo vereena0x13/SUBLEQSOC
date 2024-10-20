@@ -9,9 +9,6 @@ import java.io.FileInputStream
 object Util {
     def spinalConfig(): SpinalConfig = SpinalConfig(
         targetDirectory = "hw/gen",
-        defaultConfigForClockDomains = ClockDomainConfig(
-            resetActiveLevel = LOW
-        ),
         onlyStdLogicVectorAtTopLevelIo = true
     )
 

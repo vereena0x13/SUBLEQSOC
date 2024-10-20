@@ -1,12 +1,18 @@
 import scala.math
 
 import spinal.core._
+import nesoA7.UARTBus
 
 
 case class SubleqSOC() extends Component {
     val io = new Bundle {
-
+        val uart = new UARTBus()
     }
+
+    
+    io.uart.data_o := 0
+    io.uart.wr := False
+    io.uart.rd := False
 
 
     val cfg = SubleqConfig(
