@@ -24,8 +24,6 @@ object ST1 extends App {
 }
 
 object ST1Test extends App {
-    
-
     val cfg = Util.spinalConfig
     SimConfig
         .withWave
@@ -62,7 +60,7 @@ object ST1Test extends App {
             clk.deassertReset()
             sleep(1)
 
-            for(_ <- 0 until 6000) {
+            for(_ <- 0 until 8000) {
                 clk.clockToggle()
                 sleep(1)
                 clk.clockToggle()

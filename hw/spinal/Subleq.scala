@@ -1,5 +1,6 @@
 import spinal.core._
 import spinal.lib._
+import spinal.lib.fsm._
 
 
 case class SubleqConfig(
@@ -15,6 +16,7 @@ case class SubleqBus(cfg: SubleqConfig) extends Bundle {
     val rdata = in(cfg.dtype())
     val wdata = out(cfg.dtype())
     val write = out(Bool())
+    val ready = in(Bool())
 }
 
 
@@ -28,7 +30,7 @@ case class Subleq(cfg: SubleqConfig) extends Component {
         val a = cfg.reg()
         val b = cfg.reg()
         val c = cfg.reg()
-        val ip = cfg.reg() init(0)
+        val ip = cfg.reg()
     }
 
 
@@ -55,7 +57,9 @@ case class Subleq(cfg: SubleqConfig) extends Component {
     val br = sub <= 0
 
 
-    val state = Reg(UInt(4 bits)) init(0)
+    val state = Reg(UInt(5 bits)) init(0)
+    val b_wait = Bool()
+    b_wait := True
     
     var stateID = 0
     def nextStateID(): Int = {
@@ -65,12 +69,16 @@ case class Subleq(cfg: SubleqConfig) extends Component {
     }
 
     switch(state) {
+        def nextState(body: => Unit) = is(nextStateID())(body)
+
         def defFetchState(addr: SInt, reg: SInt, incIP: Boolean = true) {
-            is(nextStateID()) {
+            nextState {
+                b_wait := True
                 b_addr := addr
             }
-            is(nextStateID()) {
-                reg := io.bus.rdata
+            nextState(reg := io.bus.rdata)
+            nextState {
+                b_wait := False
                 if(incIP) regs.ip := regs.ip + 1
             }
         }
@@ -81,13 +89,15 @@ case class Subleq(cfg: SubleqConfig) extends Component {
         defFetchState(regs.a, t0, false)
         defFetchState(regs.b, t1, false)
 
-        is(nextStateID()) {
+        nextState {
+            b_wait := True
             b_addr := regs.b
             b_wdata := sub
             b_write := True
         }
 
-        is(nextStateID()) {
+        nextState {
+            b_wait := False
             b_write := False
             when(br) {
                 regs.ip := regs.c
@@ -95,9 +105,11 @@ case class Subleq(cfg: SubleqConfig) extends Component {
         }
     }
 
-    when(state === stateID) {
-        state := 0
-    } otherwise {
-        state := state + 1
+    when(!b_wait | io.bus.ready) {
+        when(state === stateID) {
+            state := 0
+        } otherwise {
+            state := state + 1
+        }
     }
 }

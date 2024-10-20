@@ -1,7 +1,7 @@
 import scala.math
 
 import spinal.core._
-import nesoA7.UARTBus
+import nesoA7._
 
 
 case class SubleqSOC() extends Component {
@@ -22,17 +22,20 @@ case class SubleqSOC() extends Component {
 
 
     val ramSize = math.pow(2, cfg.width).toInt
-    val mem = Mem(SInt(cfg.width bits), ramSize)
+    val mem     = Mem(SInt(cfg.width bits), ramSize)
 
 
-    val sb_addr = subleq.io.bus.addr
+    val sb_addr  = subleq.io.bus.addr
     val sb_wdata = subleq.io.bus.wdata
     val sb_write = subleq.io.bus.write
 
 
     when(sb_addr < 0) {
+        subleq.io.bus.ready := True
         subleq.io.bus.rdata := 0
     } otherwise {
+        subleq.io.bus.ready := True
+
         mem.write(
             address = sb_addr.asUInt,
             data    = sb_wdata,

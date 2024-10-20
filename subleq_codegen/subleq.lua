@@ -1,3 +1,5 @@
+#!/bin/env luajit
+
 local middleclass 	= require "middleclass"
 local argparse 		= require "argparse"
 local pprint		= require "pprint"

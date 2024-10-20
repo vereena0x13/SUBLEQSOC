@@ -17,6 +17,5 @@ case class UARTBus() extends Bundle {
 case class UARTController() extends Component {
     val io = new Bundle {
         val bus = new UARTBus()
-        
     }
 }
