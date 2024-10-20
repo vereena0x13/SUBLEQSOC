@@ -2,19 +2,21 @@ import scala.math
 
 import spinal.core._
 
+
 case class SubleqSOC() extends Component {
     val io = new Bundle {
 
     }
 
+
     val cfg = SubleqConfig(
         width = 16
     )
+    val subleq = Subleq(cfg)
+
 
     val ramSize = math.pow(2, cfg.width).toInt
     val mem = Mem(SInt(cfg.width bits), ramSize)
-
-    val subleq = Subleq(cfg)
 
 
     val sb_addr = subleq.io.bus.addr
@@ -22,10 +24,7 @@ case class SubleqSOC() extends Component {
     val sb_write = subleq.io.bus.write
 
 
-    val is_mmio_rq = sb_addr < 0
-
-    
-    when(is_mmio_rq) {
+    when(sb_addr < 0) {
         subleq.io.bus.rdata := 0
     } otherwise {
         mem.write(

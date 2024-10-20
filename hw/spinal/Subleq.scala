@@ -2,6 +2,7 @@ import spinal.core._
 import spinal.lib._
 import spinal.lib.fsm._
 
+
 case class SubleqConfig(
     val width: Int
 ) {
@@ -32,7 +33,6 @@ def subleq(rd, wr):
         if(r <= 0) ip = c
 
 */
-
 
 case class Subleq(cfg: SubleqConfig) extends Component {
     val io = new Bundle {
@@ -67,61 +67,8 @@ case class Subleq(cfg: SubleqConfig) extends Component {
     val t1 = cfg.reg()
 
 
-    val nIp = regs.ip + 1
-
-
     val sub = t1 - t0
     val br = sub <= 0
-
-
-    /*
-    val fsm = new StateMachine {
-        def fetchRegState(addr: SInt, reg: SInt, incIP: Boolean = true) = new State {
-            onEntry {
-                b_addr := addr
-            }
-            whenIsActive {
-                reg := io.bus.rdata
-            }
-            onExit {
-                if(incIP) regs.ip := nIp
-            }
-        }
-
-        val fetchA = fetchRegState(regs.ip, regs.a)
-        setEntry(fetchA)
-
-        val fetchB = fetchRegState(regs.ip, regs.b)
-        fetchA.whenIsActive(goto(fetchB))
-
-        val fetchC = fetchRegState(regs.ip, regs.c)
-        fetchB.whenIsActive(goto(fetchC))
-
-        val fetchT0 = fetchRegState(regs.a, t0, false)
-        fetchC.whenIsActive(goto(fetchT0))
-
-        val fetchT1 = fetchRegState(regs.b, t1, false)
-        fetchT0.whenIsActive(goto(fetchT1))
-
-        val execute = new State {
-            onEntry {
-                b_addr := regs.b
-                b_wdata := sub
-                b_write := True
-            }
-            whenIsActive(goto(fetchA))
-            onExit {
-                b_write := False
-                when(br) {
-                    regs.ip := regs.c
-                } otherwise {
-                    regs.ip := nIp
-                }
-            }
-        }
-        fetchT1.whenIsActive(goto(execute))
-    }
-    */
 
 
     val state = Reg(UInt(4 bits)) init(0)
@@ -140,7 +87,7 @@ case class Subleq(cfg: SubleqConfig) extends Component {
             }
             is(nextStateID()) {
                 reg := io.bus.rdata
-                if(incIP) regs.ip := nIp
+                if(incIP) regs.ip := regs.ip + 1
             }
         }
 
@@ -155,11 +102,9 @@ case class Subleq(cfg: SubleqConfig) extends Component {
             b_wdata := sub
             b_write := True
         }
-        is(nextStateID()) {
-            b_write := False
-        }
 
         is(nextStateID()) {
+            b_write := False
             when(br) {
                 regs.ip := regs.c
             }
