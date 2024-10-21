@@ -3,6 +3,8 @@ top.cache
 top.hw
 top.runs
 top.sim
+top.gen
+top.srcs
 top.ip_user_files
 *.bit
 *.bin
