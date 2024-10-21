@@ -12,7 +12,7 @@ case class SubleqConfig(
 
 
 case class SubleqBus(cfg: SubleqConfig) extends Bundle {
-    val addr = out(cfg.dtype())
+    val addr  = out(cfg.dtype())
     val rdata = in(cfg.dtype())
     val wdata = out(cfg.dtype())
     val write = out(Bool())
@@ -27,14 +27,14 @@ case class Subleq(cfg: SubleqConfig) extends Component {
 
 
     val regs = new Area {
-        val a = cfg.reg()
-        val b = cfg.reg()
-        val c = cfg.reg()
+        val a  = cfg.reg()
+        val b  = cfg.reg()
+        val c  = cfg.reg()
         val ip = cfg.reg()
     }
 
 
-    val b_addr = cfg.reg()
+    val b_addr  = cfg.reg()
     val b_wdata = cfg.reg()
     val b_write = Reg(Bool()) init(False)
 
@@ -54,12 +54,11 @@ case class Subleq(cfg: SubleqConfig) extends Component {
 
 
     val sub = t1 - t0
-    val br = sub <= 0
+    val br  = sub <= 0
 
 
-    val state = Reg(UInt(5 bits)) init(0)
+    val state  = Reg(UInt(5 bits)) init(0)
     val b_wait = Bool()
-    b_wait := True
     
     var stateID = 0
     def nextStateID(): Int = {
@@ -76,18 +75,23 @@ case class Subleq(cfg: SubleqConfig) extends Component {
                 b_wait := True
                 b_addr := addr
             }
-            nextState(reg := io.bus.rdata)
+            nextState{
+                b_wait := False
+                reg := io.bus.rdata
+            }
             nextState {
                 b_wait := False
                 if(incIP) regs.ip := regs.ip + 1
             }
         }
+        
 
         defFetchState(regs.ip, regs.a)
         defFetchState(regs.ip, regs.b)
         defFetchState(regs.ip, regs.c)
         defFetchState(regs.a, t0, false)
         defFetchState(regs.b, t1, false)
+
 
         nextState {
             b_wait := True
@@ -96,7 +100,9 @@ case class Subleq(cfg: SubleqConfig) extends Component {
             b_write := True
         }
 
-        nextState {}
+        nextState {
+            b_wait := False
+        }
 
         nextState {
             b_wait := False
@@ -104,6 +110,11 @@ case class Subleq(cfg: SubleqConfig) extends Component {
             when(br) {
                 regs.ip := regs.c
             }
+        }
+
+
+        default {
+            b_wait := True
         }
     }
 

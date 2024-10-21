@@ -10,7 +10,12 @@ import spinal.core._
 object Util {
     def spinalConfig(): SpinalConfig = SpinalConfig(
         targetDirectory = "hw/gen",
-        onlyStdLogicVectorAtTopLevelIo = true
+        onlyStdLogicVectorAtTopLevelIo = true,
+        defaultClockDomainFrequency = FixedFrequency(100 MHz),
+        device = Device(
+            vendor = "xilinx",
+            family = "Artix 7"
+        )
     )
 
     def readShorts(name: String): Array[Short] = 

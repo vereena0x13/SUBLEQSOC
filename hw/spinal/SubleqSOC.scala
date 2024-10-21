@@ -5,6 +5,7 @@ import spinal.core._
 import spinal.core.sim._
 
 import Util._
+import spinal.lib.misc.HexTools
 
 
 case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
@@ -26,17 +27,14 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
     import subleq.io._
 
 
-    val mem = {
-        val ramSize = math.pow(2, cfg.width).toInt
-        val m     = Mem(SInt(cfg.width bits), ramSize)
-        if(initial_memory.isDefined) {
-            assert(initial_memory.get.length <= ramSize)
-            val arr = new ArrayBuffer[SInt]
-            arr ++= initial_memory.get.map(x => S(x))
-            while(arr.length < ramSize) arr += S(0)
-            m.init(arr)
-        }
-        m
+    val ramSize = math.pow(2, cfg.width).toInt
+    val mem = Mem(SInt(cfg.width bits), ramSize)
+    if(initial_memory.isDefined) {
+        assert(initial_memory.get.length <= ramSize)
+        val arr = new ArrayBuffer[BigInt]
+        arr ++= initial_memory.get.map(x => BigInt(x))
+        while(arr.length < ramSize) arr += BigInt(0)
+        mem.initBigInt(arr, true)
     }
 
 
@@ -59,7 +57,7 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
                 bus.ready := True
                 b_uart_wr := True
             } elsewhen(b_uart_wr) {
-                bus.ready := True
+                bus.ready := False
                 b_uart_wr := False
             } otherwise {
                 bus.ready := False
