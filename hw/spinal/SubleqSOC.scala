@@ -23,10 +23,11 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
         width = 16
     )
     val subleq = Subleq(cfg)
+    import subleq.io._
 
-    val sb_addr  = subleq.io.bus.addr
-    val sb_wdata = subleq.io.bus.wdata
-    val sb_write = subleq.io.bus.write
+    val sb_addr  = bus.addr
+    val sb_wdata = bus.wdata
+    val sb_write = bus.write
 
 
     val ramSize = math.pow(2, cfg.width).toInt
@@ -52,24 +53,24 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
     when(sb_addr < 0) {
         when(sb_write) {
             b_uart_wdata := sb_wdata(7 downto 0).asBits
-            subleq.io.bus.rdata := 0
+            bus.rdata := 0
 
             when(!uart_txe & !b_uart_wr) {
-                subleq.io.bus.ready := True
+                bus.ready := True
                 b_uart_wr := True
             } elsewhen(b_uart_wr) {
-                subleq.io.bus.ready := True
+                bus.ready := True
                 b_uart_wr := False
             } otherwise {
-                subleq.io.bus.ready := False
+                bus.ready := False
             }
         } otherwise {
             // TODO
-            subleq.io.bus.ready := True
-            subleq.io.bus.rdata := 0
+            bus.ready := True
+            bus.rdata := 0
         }     
     } otherwise {
-        subleq.io.bus.ready := True
+        bus.ready := True
 
         mem.write(
             address = sb_addr.asUInt,
@@ -77,7 +78,7 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
             enable  = sb_write
         )
 
-        subleq.io.bus.rdata := mem.readAsync(
+        bus.rdata := mem.readAsync(
             address = sb_addr.asUInt
         )
     }
