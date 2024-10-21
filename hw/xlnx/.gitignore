@@ -1,6 +1,8 @@
 .Xil
 top.cache
 top.hw
+top.runs
+top.sim
 top.ip_user_files
 *.bit
 *.bin
