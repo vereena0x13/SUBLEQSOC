@@ -3,7 +3,8 @@ create_project -force -name top -part xc7a100tcsg324-1
 
 add_files ../gen/SubleqSOC.v
 add_files ../verilog/top.v
-add_files ../verilog/soc_mmcm.v
+#add_files ../verilog/soc_mmcm.v
+add_files ../verilog/synchronizer.v
 
 
 read_xdc top.xdc

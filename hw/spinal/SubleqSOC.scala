@@ -25,18 +25,18 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
     val subleq = Subleq(cfg)
     import subleq.io._
 
-    val sb_addr  = bus.addr
-    val sb_wdata = bus.wdata
-    val sb_write = bus.write
 
-
-    val ramSize = math.pow(2, cfg.width).toInt
-    val mem     = Mem(SInt(cfg.width bits), ramSize)
-    if(initial_memory.isDefined) {
-        val arr = new ArrayBuffer[SInt]
-        arr ++= initial_memory.get.map(x => S(x))
-        while(arr.length < ramSize) arr += S(0)
-        mem.init(arr)
+    val mem = {
+        val ramSize = math.pow(2, cfg.width).toInt
+        val m     = Mem(SInt(cfg.width bits), ramSize)
+        if(initial_memory.isDefined) {
+            assert(initial_memory.get.length <= ramSize)
+            val arr = new ArrayBuffer[SInt]
+            arr ++= initial_memory.get.map(x => S(x))
+            while(arr.length < ramSize) arr += S(0)
+            m.init(arr)
+        }
+        m
     }
 
 
@@ -50,9 +50,9 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
     uart_rd     := False
 
 
-    when(sb_addr < 0) {
-        when(sb_write) {
-            b_uart_wdata := sb_wdata(7 downto 0).asBits
+    when(bus.addr < 0) {
+        when(bus.write) {
+            b_uart_wdata := bus.wdata(7 downto 0).asBits
             bus.rdata := 0
 
             when(!uart_txe & !b_uart_wr) {
@@ -73,13 +73,13 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
         bus.ready := True
 
         mem.write(
-            address = sb_addr.asUInt,
-            data    = sb_wdata,
-            enable  = sb_write
+            address = bus.addr.asUInt,
+            data    = bus.wdata,
+            enable  = bus.write
         )
 
         bus.rdata := mem.readAsync(
-            address = sb_addr.asUInt
+            address = bus.addr.asUInt
         )
     }
 }
@@ -98,9 +98,6 @@ object TestSOC extends App {
             val soc = SubleqSOC(None)
             
             soc.mem.simPublic()
-            soc.sb_addr.simPublic()
-            soc.sb_wdata.simPublic()
-            soc.sb_write.simPublic()
             soc.io.uart_wdata.simPublic()
             soc.io.uart_rdata.simPublic()
             soc.io.uart_txe.simPublic()
@@ -143,7 +140,7 @@ object TestSOC extends App {
                 clk.clockToggle()
                 sleep(1)
 
-                //if(soc.sb_write.toBoolean && soc.sb_addr.toInt < 0) {
+                //if(soc.bus.write.toBoolean && soc.bus.addr.toInt < 0) {
                 //    print(soc.io.uart_wdata.toInt.toChar)
                 //}
 

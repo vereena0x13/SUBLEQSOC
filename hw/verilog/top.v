@@ -9,20 +9,23 @@ module top(
 	output wire t_uart_rd
 );
 
-	wire clk;
+	wire clk = t_clk;
 
+	/*
 	soc_mmcm mmcm(
 		.clk_in(t_clk),
 		.reset(~t_rst),
 		.clk_out(clk)
 	);
+	*/
 
 
-	reg rst_s0 = 1'b0;
-	reg rst_s1 = 1'b0;
-	always @(posedge clk) rst_s0 <= t_rst;
-	always @(posedge clk) rst_s1 <= rst_s0;
-
+	wire srst;
+	synchronizer rst_sync(
+		.clk(clk),
+		.in(t_rst),
+		.out(srst)
+	);
 
 	reg [32:0] rst_tmr = 32'h0;
 	wire por = rst_tmr != 1000000;
@@ -32,17 +35,22 @@ module top(
 		end
 	end
 
-	wire rst = ~rst_s1 | por;
+	wire rst = ~srst | por;
 
 
-	reg txe_s0 = 1'b1;
-	reg txe_s1 = 1'b1;
-	always @(posedge clk) txe_s0 <= t_uart_txe;
-	always @(posedge clk) txe_s1 <= txe_s0;
-	reg rxf_s0 = 1'b1;
-	reg rxf_s1 = 1'b1;
-	always @(posedge clk) rxf_s0 <= t_uart_rxf;
-	always @(posedge clk) rxf_s1 <= rxf_s0;
+	wire stxe;
+	synchronizer txe_sync(
+		.clk(clk),
+		.in(uart_txe),
+		.out(stxe)
+	);
+
+	wire srxf;
+	synchronizer rxf_sync(
+		.clk(clk),
+		.in(uart_rxf),
+		.out(srxf)
+	);
 
 
 	wire [7:0] uart_do;
@@ -59,8 +67,8 @@ module top(
         .reset(rst),
         .io_uart_rdata(t_uart_data),
 		.io_uart_wdata(uart_do),
-		.io_uart_txe(txe_s1),
-		.io_uart_rxf(rxf_s1),
+		.io_uart_txe(stxe),
+		.io_uart_rxf(srxf),
 		.io_uart_wr(uart_wr),
 		.io_uart_rd(uart_rd)
     );
