@@ -5,7 +5,6 @@ import spinal.core._
 import spinal.core.sim._
 
 import Util._
-import spinal.lib.misc.HexTools
 
 
 case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {

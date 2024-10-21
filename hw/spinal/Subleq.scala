@@ -12,30 +12,34 @@ case class SubleqConfig(
 
 
 case class SubleqBus(cfg: SubleqConfig) extends Bundle {
-    val addr  = out(cfg.dtype())
-    val rdata = in(cfg.dtype())
-    val wdata = out(cfg.dtype())
+    import cfg._
+    
+    val addr  = out(dtype())
+    val rdata = in(dtype())
+    val wdata = out(dtype())
     val write = out(Bool())
     val ready = in(Bool())
 }
 
 
 case class Subleq(cfg: SubleqConfig) extends Component {
+    import cfg._
+    
     val io = new Bundle {
         val bus = SubleqBus(cfg)
     }
 
 
     val regs = new Area {
-        val a  = cfg.reg()
-        val b  = cfg.reg()
-        val c  = cfg.reg()
-        val ip = cfg.reg()
+        val a  = reg()
+        val b  = reg()
+        val c  = reg()
+        val ip = reg()
     }
 
 
-    val b_addr  = cfg.reg()
-    val b_wdata = cfg.reg()
+    val b_addr  = reg()
+    val b_wdata = reg()
     val b_write = Reg(Bool()) init(False)
 
     io.bus.addr := b_addr
@@ -49,8 +53,8 @@ case class Subleq(cfg: SubleqConfig) extends Component {
     io.bus.write := b_write
 
 
-    val t0 = cfg.reg()
-    val t1 = cfg.reg()
+    val t0 = reg()
+    val t1 = reg()
 
 
     val sub = t1 - t0
