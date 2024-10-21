@@ -2,10 +2,10 @@
 [*] GTKWave Analyzer v3.3.120 (w)1999-2024 BSI
 [*] Sun Oct 20 19:31:50 2024
 [*]
-[dumpfile] "/run/media/vereena/ldata/Projects_New/playground/st1/simWorkspace/SubleqSOC/test/wave.vcd"
+[dumpfile] "/run/media/vereena/ldata/Projects_New/playground/SUBLEQSOC/simWorkspace/SubleqSOC/test/wave.vcd"
 [dumpfile_mtime] "Sun Oct 20 19:31:15 2024"
 [dumpfile_size] 524278
-[savefile] "/run/media/vereena/ldata/Projects_New/playground/st1/test.gtkw"
+[savefile] "/run/media/vereena/ldata/Projects_New/playground/SUBLEQSOC/test.gtkw"
 [timestart] 485
 [size] 2550 1355
 [pos] -1 -1
