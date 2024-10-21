@@ -48,7 +48,7 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
 
     when(sb_addr < 0) {
         when(sb_write) {
-            b_uart_wdata := sb_wdata.trim(8).asBits
+            b_uart_wdata := sb_wdata(7 downto 0).asBits
             subleq.io.bus.rdata := 0
 
             when(!uart_txe & !b_uart_wr) {

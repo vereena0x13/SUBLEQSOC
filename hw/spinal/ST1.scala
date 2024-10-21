@@ -42,6 +42,7 @@ object ST1Test extends App {
             soc.io.uart_rxf.simPublic()
             soc.io.uart_wr.simPublic()
             soc.io.uart_rd.simPublic()
+            soc.b_uart_wdata.simPublic()
             
             soc
         }
@@ -82,7 +83,7 @@ object ST1Test extends App {
                 //}
 
                 if(soc.io.uart_wr.toBoolean) {
-                    print(soc.io.uart_wdata.toInt.toChar)
+                    print(soc.b_uart_wdata.toInt.toChar)
                 }
             }
         }
