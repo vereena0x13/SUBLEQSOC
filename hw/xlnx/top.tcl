@@ -2,6 +2,7 @@ create_project -force -name top -part xc7a100tcsg324-1
 
 add_files ../gen/SubleqSOC.v
 add_files top.v
+add_files soc_mmcm.v
 
 read_xdc top.xdc
 synth_design -top top 
