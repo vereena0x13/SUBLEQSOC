@@ -1,0 +1,72 @@
+[*]
+[*] GTKWave Analyzer v3.3.120 (w)1999-2024 BSI
+[*] Fri Jan 31 02:24:16 2025
+[*]
+[dumpfile] "/run/media/vereena/ldata/Projects/SUBLEQSOC/simWorkspace/SubleqSOC/test/wave.fst"
+[dumpfile_mtime] "Fri Jan 31 02:23:51 2025"
+[dumpfile_size] 14120
+[savefile] "/run/media/vereena/ldata/Projects/SUBLEQSOC/SubleqSOC.gtkw"
+[timestart] 0
+[size] 2560 1365
+[pos] -1 -1
+*-5.253675 59 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.SubleqSOC.
+[sst_width] 273
+[signals_width] 216
+[sst_expanded] 1
+[sst_vpaned_height] 438
+@28
++{clk} TOP.SubleqSOC.subleq_1.clk
+[color] 1
+TOP.SubleqSOC.reset
+@200
+-
+@820
++{state} TOP.SubleqSOC.subleq_1.fsm_stateReg_string[55:0]
+@200
+-
+@420
+[color] 3
++{ip} TOP.SubleqSOC.subleq_1.ip[15:0]
+[color] 5
++{a} TOP.SubleqSOC.subleq_1.a[15:0]
+[color] 5
++{b} TOP.SubleqSOC.subleq_1.b[15:0]
+[color] 5
++{c} TOP.SubleqSOC.subleq_1.c[15:0]
+[color] 3
++{t0} TOP.SubleqSOC.subleq_1.t0[15:0]
+[color] 3
++{t0} TOP.SubleqSOC.subleq_1.t1[15:0]
+@200
+-
+@420
+[color] 7
++{sub} TOP.SubleqSOC.subleq_1.sub[15:0]
+@28
+[color] 1
++{br} TOP.SubleqSOC.subleq_1.br
+@200
+-
+@28
+[color] 2
++{valid} TOP.SubleqSOC.subleq_1.io_bus_cmd_valid
+[color] 2
++{ready} TOP.SubleqSOC.subleq_1.io_bus_cmd_ready
+[color] 1
++{write} TOP.SubleqSOC.subleq_1.io_bus_cmd_payload_write
+@420
+[color] 5
++{addr} TOP.SubleqSOC.subleq_1.io_bus_cmd_payload_addr[15:0]
+[color] 5
++{wdata} TOP.SubleqSOC.subleq_1.io_bus_cmd_payload_data[15:0]
+[color] 5
++{rdata} TOP.SubleqSOC.subleq_1.io_bus_rsp_data[15:0]
+@200
+-
+@28
+[color] 3
++{is_mmio} TOP.SubleqSOC.is_mmio
+[pattern_trace] 1
+[pattern_trace] 0

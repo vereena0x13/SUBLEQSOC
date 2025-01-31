@@ -1,4 +1,5 @@
 import spinal.core._
+import spinal.core.sim._
 import spinal.lib._
 import spinal.lib.fsm._
 
@@ -6,127 +7,102 @@ import spinal.lib.fsm._
 case class SubleqConfig(
     val width: Int
 ) {
-    def dtype() = SInt(width bits)
+    def dtype() = UInt(width bits)
     def reg() = Reg(dtype()) init(0)
 }
 
 
-case class SubleqBus(cfg: SubleqConfig) extends Bundle {
+case class SubleqBusCmd(cfg: SubleqConfig) extends Bundle {
     import cfg._
     
-    val addr  = out(dtype())
-    val rdata = in(dtype())
-    val wdata = out(dtype())
-    val write = out(Bool())
-    val ready = in(Bool())
+    val addr  = dtype()
+    val data  = dtype()
+    val write = Bool()
+}
+
+
+case class SubleqBusRsp(cfg: SubleqConfig) extends Bundle with IMasterSlave {
+    import cfg._
+
+    val data  = dtype()
+
+    def asMaster(): Unit = {
+        out(data)
+    }
+}
+
+case class SubleqBus(cfg: SubleqConfig) extends Bundle with IMasterSlave {
+    val cmd = Stream(SubleqBusCmd(cfg))
+    val rsp = SubleqBusRsp(cfg)
+
+    def asMaster(): Unit = {
+        master(cmd)
+        slave(rsp)
+    }
 }
 
 
 case class Subleq(cfg: SubleqConfig) extends Component {
     import cfg._
-    
+
     val io = new Bundle {
-        val bus = SubleqBus(cfg)
+        val bus                     = master(SubleqBus(cfg))
     }
+    import io.bus._
 
 
-    val regs = new Area {
-        val a  = reg()
-        val b  = reg()
-        val c  = reg()
-        val ip = reg()
-    }
-
-
-    val b_addr  = reg()
-    val b_wdata = reg()
-    val b_write = Reg(Bool()) init(False)
-
-    io.bus.addr := b_addr
-
-    when(b_write) {
-        io.bus.wdata := b_wdata
-    } otherwise {
-        io.bus.wdata := 0
-    }
-
-    io.bus.write := b_write
-
-
-    val t0 = reg()
-    val t1 = reg()
-
-
-    val sub = t1 - t0
-    val br  = sub <= 0
-
-
-    val state  = Reg(UInt(5 bits)) init(0)
-    val b_wait = Bool()
+    cmd.addr                        := 0
+    cmd.data                        := 0
+    cmd.write                       := False
+    cmd.valid.setAsReg() init(False)
     
-    var stateID = 0
-    def nextStateID(): Int = {
-        var id = stateID
-        stateID += 1
-        return id
-    }
 
-    switch(state) {
-        def nextState(body: => Unit) = is(nextStateID())(body)
+    val a                           = reg()
+    val b                           = reg()
+    val c                           = reg()
+    val ip                          = reg()
+    val t0                          = reg()
+    val t1                          = reg()
 
-        def defFetchState(addr: SInt, reg: SInt, incIP: Boolean = true) {
-            nextState {
-                b_wait := True
-                b_addr := addr
-            }
-            nextState{
-                b_wait := False
-                reg := io.bus.rdata
-            }
-            nextState {
-                b_wait := False
-                if(incIP) regs.ip := regs.ip + 1
-            }
-        }
-        
-
-        defFetchState(regs.ip, regs.a)
-        defFetchState(regs.ip, regs.b)
-        defFetchState(regs.ip, regs.c)
-        defFetchState(regs.a, t0, false)
-        defFetchState(regs.b, t1, false)
+    val sub                         = t1 - t0
+    val br                          = sub <= 0
 
 
-        nextState {
-            b_wait := True
-            b_addr := regs.b
-            b_wdata := sub
-            b_write := True
-        }
+    val fsm                         = new StateMachine {
+        val fetchA                  = new State with EntryPoint
+        val fetchB                  = new State
+        val fetchC                  = new State
+        val fetchT0                 = new State
+        val fetchT1                 = new State
+        val execute                 = new State
 
-        nextState {
-            b_wait := False
-        }
-
-        nextState {
-            b_wait := False
-            b_write := False
-            when(br) {
-                regs.ip := regs.c
+        def fetch(src: UInt, reg: UInt, a: State, b: State, incIP: Boolean = true) = a.whenIsActive {
+            cmd.addr                := src
+            cmd.valid               := True
+            when(cmd.fire) {
+                cmd.valid           := False
+                reg                 := rsp.data
+                if(incIP) ip        := ip + 1
+                goto(b)
             }
         }
 
+        fetch(ip, a, fetchA, fetchB)
+        fetch(ip, b, fetchB, fetchC)
+        fetch(ip, c, fetchC, fetchT0)
+        fetch(a, t0, fetchT0, fetchT1, false)
+        fetch(b, t1, fetchT1, execute, false)
 
-        default {
-            b_wait := True
-        }
-    }
-
-    when(!b_wait | io.bus.ready) {
-        when(state === stateID) {
-            state := 0
-        } otherwise {
-            state := state + 1
+        execute.whenIsActive {
+            cmd.addr                := b
+            cmd.data                := sub
+            cmd.write               := True
+            cmd.valid               := True
+            when(cmd.fire) {
+                cmd.valid           := False
+                when(br)(ip := c)
+                goto(fetchA)
+            }
         }
     }
 }

@@ -19,6 +19,11 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
     import io._
 
 
+    uart_wdata.setAsReg() init(0)
+    uart_wr.setAsReg() init(False)
+    uart_rd := False
+
+
     val cfg = SubleqConfig(
         width = 16
     )
@@ -27,7 +32,7 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
 
 
     val ramSize = math.pow(2, cfg.width).toInt
-    val mem = Mem(SInt(cfg.width bits), ramSize)
+    val mem = Mem(UInt(cfg.width bits), ramSize)
     if(initial_memory.isDefined) {
         assert(initial_memory.get.length <= ramSize)
         val arr = new ArrayBuffer[BigInt]
@@ -36,48 +41,47 @@ case class SubleqSOC(initial_memory: Option[Array[Short]]) extends Component {
         mem.initBigInt(arr, true)
     }
 
-
-    val b_uart_wdata = Reg(Bits(8 bits)) init(0)
-    val b_uart_wr    = Reg(Bool()) init(False)
-    //val b_uart_rd    = Reg(Bool()) init(False)
-
-    uart_wdata  := b_uart_wdata
-    uart_wr     := b_uart_wr 
-    //uart_rd     := b_uart_rd
-    uart_rd     := False
+    
+    bus.cmd.ready := False
+    bus.rsp.data := 0
 
 
-    when(bus.addr < 0) {
-        when(bus.write) {
-            b_uart_wdata := bus.wdata(7 downto 0).asBits
-            bus.rdata := 0
+    val is_putc = bus.cmd.addr === 65535
+    val is_getc = bus.cmd.addr === 65534
+    val is_mmio = is_putc | is_getc
 
-            when(!uart_txe & !b_uart_wr) {
-                bus.ready := True
-                b_uart_wr := True
-            } elsewhen(b_uart_wr) {
-                bus.ready := False
-                b_uart_wr := False
+    val rd = mem.readWriteSync(
+        address = bus.cmd.addr,
+        data    = bus.cmd.data,
+        enable  = bus.cmd.valid & !is_mmio & !clockDomain.readResetWire,
+        write   = bus.cmd.write
+    )
+
+    val delayed_cmd_valid = RegNext(bus.cmd.valid)
+    when(bus.cmd.valid & !clockDomain.readResetWire) {
+        when(is_mmio) {
+            when(bus.cmd.write) {
+                when(!uart_txe) {
+                    uart_wdata := bus.cmd.data(7 downto 0).asBits
+                    uart_wr := True
+
+                    when(delayed_cmd_valid) {
+                        bus.cmd.ready := True
+                    }
+                }
             } otherwise {
-                bus.ready := False
+                when(delayed_cmd_valid) {
+                    bus.cmd.ready := True
+                }
             }
         } otherwise {
-            // TODO
-            bus.ready := True
-            bus.rdata := 0
-        }     
-    } otherwise {
-        bus.ready := True
-
-        mem.write(
-            address = bus.addr.asUInt,
-            data    = bus.wdata,
-            enable  = bus.write
-        )
-
-        bus.rdata := mem.readAsync(
-            address = bus.addr.asUInt
-        )
+            when(!bus.cmd.write) {
+                bus.rsp.data := rd
+            }
+            when(delayed_cmd_valid) {
+                bus.cmd.ready := True
+            }
+        }
     }
 }
 
@@ -87,22 +91,28 @@ object GenerateSOC extends App {
 }
 
 
-object TestSOC extends App {
+object SimulateSOC extends App {
     SimConfig
-        .withWave
+        .withFstWave
         .withConfig(spinalConfig)
         .compile {
             val soc = SubleqSOC(None)
             
             soc.mem.simPublic()
+            soc.io.simPublic()
             soc.io.uart_wdata.simPublic()
             soc.io.uart_rdata.simPublic()
             soc.io.uart_txe.simPublic()
             soc.io.uart_rxf.simPublic()
             soc.io.uart_wr.simPublic()
             soc.io.uart_rd.simPublic()
-            soc.b_uart_wdata.simPublic()
-            
+            soc.is_mmio.simPublic()
+            soc.subleq.io.bus.cmd.valid.simPublic()
+            soc.subleq.io.bus.cmd.ready.simPublic()
+            soc.subleq.io.bus.cmd.write.simPublic()
+            soc.subleq.io.bus.cmd.addr.simPublic()
+            soc.subleq.io.bus.cmd.data.simPublic()
+
             soc
         }
         .doSim { soc =>
@@ -110,7 +120,7 @@ object TestSOC extends App {
             soc.io.uart_txe   #= false
             soc.io.uart_rxf   #= true
 
-            val test_bin = readShorts("test.bin")
+            val test_bin = readShorts("subleq_codegen/test.bin")
             for(i <- 0 until test_bin.length) {
                 val v = test_bin(i)
                 val v2: Int = v & 0xFFFF
@@ -131,7 +141,7 @@ object TestSOC extends App {
             clk.deassertReset()
             sleep(1)
 
-            for(_ <- 0 until 8500) {
+            for(_ <- 0 until 5000) {
                 clk.clockToggle()
                 sleep(1)
                 clk.clockToggle()
@@ -141,8 +151,11 @@ object TestSOC extends App {
                 //    print(soc.io.uart_wdata.toInt.toChar)
                 //}
 
-                if(soc.io.uart_wr.toBoolean) {
-                    print(soc.b_uart_wdata.toInt.toChar)
+                if(soc.subleq.io.bus.cmd.valid.toBoolean &&
+                   soc.subleq.io.bus.cmd.ready.toBoolean &&
+                   soc.subleq.io.bus.cmd.write.toBoolean &&
+                   soc.is_mmio.toBoolean) {
+                    print(soc.io.uart_wdata.toInt.toChar)
                 }
             }
         }
